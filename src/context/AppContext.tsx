@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { LogEntry, CheckIn, Notification, Assignment } from '../types';
+import { databases, DATABASE_ID, LOGENTRIES_TABLE_ID } from '../appwriteConfig';
+import { ID } from 'appwrite';
 
 interface AppContextType {
   logEntries: LogEntry[];
@@ -136,14 +138,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => window.removeEventListener('checkInAdded', handleCheckInAdded as EventListener);
   }, []);
 
-  const addLogEntry = (entry: Omit<LogEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+ const addLogEntry = async (entry: Omit<LogEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newEntry: LogEntry = {
       ...entry,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+
+    // Update the app instantly (so the UI feels fast)
     setLogEntries(prev => [newEntry, ...prev]);
+
+    // Also save it permanently to Appwrite
+    try {
+      await databases.createDocument(
+        DATABASE_ID,
+        LOGENTRIES_TABLE_ID,
+        ID.unique(),
+        {
+          studentName: entry.studentName,
+          location: entry.location
+            ? `${entry.location.latitude}, ${entry.location.longitude}`
+            : 'Not provided',
+          logData: entry.date,
+          description: entry.description
+        }
+      );
+    } catch (error) {
+      console.error('Failed to save log entry to Appwrite:', error);
+    }
   };
 
   const updateLogEntry = (id: string, updates: Partial<LogEntry>) => {
