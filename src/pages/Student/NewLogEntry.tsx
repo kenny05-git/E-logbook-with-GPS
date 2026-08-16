@@ -48,7 +48,7 @@ const NewLogEntry: React.FC = () => {
         setLocation({ latitude, longitude, address });
         setLocationLoading(false);
       },
-      (error) => {
+      () => {
         setLocationError('Unable to retrieve your location. You can still submit without location data.');
         setLocationLoading(false);
       },
